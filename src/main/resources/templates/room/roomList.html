@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h2>房间列表</h2>
+
+<form method="post" th:action="@{/room/roomList/join}">
+    <label>
+        <input type="text" name="roomId">
+    </label>
+    <input type="submit" value="加入房间">
+</form>
+<form method="post" th:action="@{/room/roomList/add}">
+    <label>
+        房间名<input type="text" name="roomName">
+    </label>
+    <input type="submit" value="创建房间">
+</form>
+<h2 th:text="${errorInfo}" th:unless="${errorInfo == null}"></h2>
+
+<table>
+    <thead>
+    <tr>
+        <th>房间ID</th>
+    </tr>
+    </thead>
+    <tbody th:remove="all-but-first">
+    <tr th:each="room:${RoomIds}">
+        <td th:text="${room}">房间id</td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

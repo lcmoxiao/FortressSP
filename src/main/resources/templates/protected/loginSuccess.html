@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<h2>登录成功</h2>
+
+<form th:action="@{/logoutPage}" method="post">
+    <input type="submit" value="想注销">
+</form>
+
+<form th:action="@{/room/roomList/show}" method="get">
+    <input type="submit" value="进入房间列表">
+</form>
+
+</body>
+</html>
