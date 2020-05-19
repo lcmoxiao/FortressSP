@@ -6,7 +6,6 @@ import static logic.tool.MyCompiler.outDir;
 
 public class MyClassLoader extends ClassLoader {
 
-
     private final String classpath;
 
     public MyClassLoader() {

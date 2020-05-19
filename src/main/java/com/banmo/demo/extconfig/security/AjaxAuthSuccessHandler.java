@@ -20,8 +20,8 @@ public class AjaxAuthSuccessHandler extends SimpleUrlAuthenticationSuccessHandle
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         logger.info("Authentication success, {} login successfully", request.getParameter("username"));
-        request.getSession().setAttribute("username",request.getParameter("username"));
+        request.getSession().setAttribute("username", request.getParameter("username"));
         response.setStatus(HttpServletResponse.SC_OK);
-        request.getRequestDispatcher("/loginSuccess").forward(request,response);
+        request.getRequestDispatcher("/loginSuccess").forward(request, response);
     }
 }

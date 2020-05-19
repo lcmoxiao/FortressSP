@@ -9,6 +9,8 @@ package logic.beans;
 //        }
 //    }
 
+import com.alibaba.fastjson.annotation.JSONField;
+
 import java.io.Serializable;
 
 
@@ -27,16 +29,25 @@ public class Human implements Serializable {
     final static int 法师 = 11;
     final static int 战车 = 12;
 
+    @JSONField(ordinal=1)
     int id;
+    @JSONField(ordinal=2)
     String name;  //中文名  1
+    @JSONField(ordinal=3)
     int hp;       //血量  2
+    @JSONField(ordinal=4)
     int atk;      //攻击  3
+    @JSONField(ordinal=5)
     int def;      //防御  4
-    //每个职业都要实现的不可变的  5
+    @JSONField(ordinal=6)
     int spd;      //移速  6
+    @JSONField(ordinal=7)
     double dod;   //闪避率  7
+    @JSONField(ordinal=8)
     int rag;      //攻击范围  8
+    @JSONField(ordinal=9)
     int cost;     //价格   9
+    @JSONField(ordinal=10)
     boolean isAOE;  //范围攻击   10
 
     public int getId() {

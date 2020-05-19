@@ -18,7 +18,7 @@ import java.util.List;
  * 信息描述：
  */
 public class MyCompiler {
-    public static String outDir = System.getProperty("user.dir") + "\\src";
+    public static String outDir = System.getProperty("user.dir") + "\\src\\main\\java";
 
     public static Class<?> compile(String name, String content) {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();

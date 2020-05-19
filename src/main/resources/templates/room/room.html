@@ -3,10 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+
+    <script th:src="@{../../static/webSocTools.js}"></script>
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
+    <script th:inline="JavaScript">
+        let socket;
+        let username = [[${session.username}]];
+        let roomId = [[${session.roomId}]];
+
+        function gameStart() {
+            socket.send('{' +
+                '"toStage":"' + '0' + '"' +
+                ',"roomId":"' + roomId + '"' +
+                ',"msgType":"' + '2' + '"' +
+                '}');
+        }
+
+        function corpsUpdate() {
+            let corpsInfo = $("#corpsInfo").val();
+            console.log('{' +
+                '"toUserId":"' + username + '"' +
+                ',"corpsInfo":"' + corpsInfo + '"' +
+                ',"roomId":"' + roomId + '"' +
+                ',"msgType":"' + "1" + '"' +
+                '}');
+            socket.send('{' +
+                '"toUserId":"' + username + '"' +
+                ',"corpsInfo":"' + corpsInfo + '"' +
+                ',"roomId":"' + roomId + '"' +
+                ',"msgType":"' + '1' + '"' +
+                '}');
+        }
+
+        function openSocket() {
+            if (typeof (WebSocket) == "undefined") {
+                console.log("您的浏览器不支持WebSocket");
+            } else {
+                console.log("您的浏览器支持WebSocket");
+                //拼凑链接地址
+                let socketUrl = getLocalhostPath() + "/webServer/" + username;//$("#userId").val()
+                socketUrl = socketUrl.replace("https", "ws").replace("http", "ws");
+                console.log(socketUrl);
+                if (socket != null) {
+                    socket.close();
+                    socket = null;
+                }
+                socket = new WebSocket(socketUrl);
+                //打开事件
+                socket.onopen = function () {
+                    console.log(username + "的websocket已打开");
+                    //socket.send("这是来自客户端的消息" + location.href + new Date());
+                };
+
+                socket.onmessage = function (msg) {
+                    console.log(msg.data)
+                    let info = JSON.parse(msg.data);
+                    if (info.msgType === "0") {
+                        $("#p2Name").html(info.p2Name);
+                    } else if (info.msgType === "1") {
+                        let listPrint = info.corpsInfo;
+                        let editTable = document.getElementById("tbody");
+                        $("#tbody").html("");
+                        for (let i in listPrint) {
+                            let tr = document.createElement("tr");
+                            for (let key in listPrint[i]) { //map key
+                                let td0 = document.createElement("td");
+                                td0.innerHTML = listPrint[i][key];
+                                tr.appendChild(td0);
+                            }
+                            editTable.appendChild(tr);
+                        }
+                    } else if (info.msgType === "2") {
+                        let toStage = info.toStage;
+                        if (toStage === "0") {
+                            let turn0div = document.getElementById("turn0");
+                            turn0div.removeChild(document.getElementById("startBtn"));
+                            let turn1div = document.getElementById("turn1");
+                            //创建代码框
+                            let corpsInfo = document.createElement("textarea");
+                            corpsInfo.rows = 10;
+                            corpsInfo.cols = 30;
+                            corpsInfo.id = "corpsInfo";
+                            corpsInfo.innerText = "Corps.get(剑士).setAtk(15);";
+                            turn1div.appendChild(corpsInfo);
+                            //提交按钮
+                            let button = document.createElement("div");
+                            button.innerHTML = "<button onclick='corpsUpdate()'>提交代码</button>";
+                            turn1div.appendChild(button);
+                            //创建表格
+                            let table = document.createElement("table");
+                            let tr = document.createElement("tr");
+                            let th0 = document.createElement("th");
+                            th0.innerText = "ID";
+                            tr.appendChild(th0);
+                            let th1 = document.createElement("th");
+                            th1.innerText = "NAME";
+                            tr.appendChild(th1);
+                            let th2 = document.createElement("th");
+                            th2.innerText = "HP";
+                            tr.appendChild(th2);
+                            let th3 = document.createElement("th");
+                            th3.innerText = "ATK";
+                            tr.appendChild(th3);
+                            let th4 = document.createElement("th");
+                            th4.innerText = "DEF";
+                            tr.appendChild(th4);
+                            let th5 = document.createElement("th");
+                            th5.innerText = "SPD";
+                            tr.appendChild(th5);
+                            let th6 = document.createElement("th");
+                            th6.innerText = "DOD";
+                            tr.appendChild(th6);
+                            let th7 = document.createElement("th");
+                            th7.innerText = "RAG";
+                            tr.appendChild(th7);
+                            let th8 = document.createElement("th");
+                            th8.innerText = "COST";
+                            tr.appendChild(th8);
+                            let th9 = document.createElement("th");
+                            th9.innerText = "isAOE";
+                            tr.appendChild(th9);
+                            table.appendChild(tr);
+                            let tbody = document.createElement("tbody");
+                            tbody.id = "tbody";
+                            table.appendChild(tbody);
+                            turn1div.appendChild(table);
+                        }
+                    }
+                };
+                //关闭事件
+                socket.onclose = function () {
+                    console.log("websocket已关闭");
+                };
+                //发生了错误事件
+                socket.onerror = function () {
+                    console.log("websocket发生了错误");
+                }
+            }
+        }
+
+
+    </script>
+
 </head>
-<body>
+<!--进入时生成websocket。-->
+<body onload="openSocket()">
 <h2>Room</h2>
-<h2>欢迎来到</h2><span th:text="${session.roomId}+号房"></span>
+<h2>欢迎来到<span th:text="${session.roomId}+号房"></span></h2>
+<h2>p1:<span th:text="${session.p1Name}" th:id="p1Name"></span>&nbsp;p2:<span th:text="${session.p2Name}"
+                                                                        th:id="p2Name"></span></h2>
+<div th:id="turn1">
+
+</div>
+
+<div th:id="turn0">
+    <button onclick="gameStart()" th:id="startBtn">开始游戏</button>
+</div>
+
+
+
+
 
 </body>
 </html>
