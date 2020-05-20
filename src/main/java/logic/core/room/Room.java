@@ -3,13 +3,16 @@ package logic.core.room;
 
 import com.alibaba.fastjson.JSONObject;
 import com.banmo.demo.websocket.WebSocketServer;
-import logic.beans.Human;
+import logic.beans.Occupation;
 import logic.tool.MyClassLoader;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static logic.tool.MyCompiler.compile;
 import static logic.tool.MyCompiler.outDir;
@@ -17,6 +20,7 @@ import static logic.tool.MyCompiler.outDir;
 
 public class Room {
 
+    MyClassLoader myClassLoader = new MyClassLoader(outDir);
     //房间ID和房间名
     private int roomId; //房间id，由Center自动传入
     private String roomName; //房间名
@@ -28,18 +32,61 @@ public class Room {
     //共用一张map信息
     private MapInfo mapInfo;
     //GameTimer
-    private GameTimer gameTimer;
+    private final GameTimer gameTimer = new GameTimer() {
+        @Override
+        void onTurn1Finished() {
+            System.out.println("即将开始布局");
+            JSONObject jo = new JSONObject();
+            jo.put("msgType", "2");
+            jo.put("toStage", "2");
+            notifyAllPlayer(jo.toJSONString());
+        }
+
+        @Override
+        void onTurn2Finished() {
+            System.out.println("即将开始战斗");
+            JSONObject jo = new JSONObject();
+            jo.put("msgType", "2");
+            jo.put("toStage", "3");
+            notifyAllPlayer(jo.toJSONString());
+        }
+
+        @Override
+        void onTurn3Finished() {
+            System.out.println("开始战斗");
+            TimerTask continueTimer = new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        nextTurn();
+                        if (p1.getFortressHP() < 0) {
+                            JSONObject jo = new JSONObject();
+                            jo.put("msgType", "3");
+                            jo.put("info", "P1获胜");
+                            notifyAllPlayer(jo.toJSONString());
+                            cancel();
+                        } else if (p2.getFortressHP() < 0) {
+                            JSONObject jo = new JSONObject();
+                            jo.put("msgType", "3");
+                            jo.put("info", "P2获胜");
+                            notifyAllPlayer(jo.toJSONString());
+                            cancel();
+                        }
+                    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException | ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            new Timer().schedule(continueTimer, 0, MapInfo.initPeriod * 1000);
+        }
+    };
 
     //禁止使用
     private Room() {
     }
 
-    //开房
     public Room(PlayerInfo owner, String roomName, int id) {
-        this.p1 = owner;
-        this.roomName = roomName;
-        this.roomId = id;
-        this.isPlaying = false;
+        create(owner, roomName, id);
     }
 
     public String getRoomName() {
@@ -47,160 +94,79 @@ public class Room {
     }
 
     public String getP2Name() {
-        return p2.name;
+        return p2.getName();
     }
 
     public String getP1Name() {
-        return p1.name;
-    }
-
-    //加入房间
-    public boolean join(PlayerInfo joiner) {
-        if (!isFull()) {
-            this.p2 = joiner;
-            return true;
-        } else return false;
-    }
-
-    //请出房间
-    public boolean plzOut() {
-        if (isFull()) {
-            this.p2 = null;
-            return true;
-        } else return false;
-    }
-
-    //p2退出房间
-    public boolean exit() {
-        if (isFull()) {
-            this.p2 = null;
-            return true;
-        } else return false;
-    }
-
-    public void notifyAllPlayer(String msgInfo) {
-        try {
-            WebSocketServer.sendInfo(msgInfo, p1.name);
-            WebSocketServer.sendInfo(msgInfo, p2.name);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        return p1.getName();
     }
 
     //ToStage对应游戏的开始，第一轮，第二轮战略，第二轮战斗  0，1，2，3
     //开始游戏
     public void gameStart() {
         mapInfo = new MapInfo();
-        gameTimer = new GameTimer() {
-            @Override
-            void onTurn1Finished() {
-                JSONObject jo = new JSONObject();
-                jo.put("msgType", "2");
-                jo.put("toStage", "2");
-                notifyAllPlayer(jo.toJSONString());
-            }
-
-            @Override
-            void onTurn2Finished() {
-                JSONObject jo = new JSONObject();
-                jo.put("msgType", "2");
-                jo.put("toStage", "3");
-                notifyAllPlayer(jo.toJSONString());
-            }
-
-            @Override
-            void onTurn3Finished() {
-
-            }
-        };
         JSONObject jo = new JSONObject();
         jo.put("msgType", "2");
-        jo.put("toStage", "0");
+        jo.put("toStage", "1");
         notifyAllPlayer(jo.toJSONString());
         gameTimer.start();
         isPlaying = true;
     }
 
-    //测试用例
-//    public static void main(String[] args) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-//        PlayerInfo p = new PlayerInfo(1);
-//        Room room = new Room(p,"room",1);
-//        String c = "Corps.get(剑士).setAtk(20);";
-//        room.setProperty(p,c);
-//    }
-
-
-    public ArrayList<Human> getCorps(String username) {
-        if (p1.name.equals(username)) return p1.corps;
-        else return p2.corps;
+    //创建房间
+    public void create(PlayerInfo owner, String roomName, int id) {
+        this.p1 = owner;
+        p1.setNowRoom(this);
+        mapInfo.setP1Name(getP1Name());
+        this.roomName = roomName;
+        this.roomId = id;
+        this.isPlaying = false;
     }
 
-    public ArrayList<Human> getSelectedCorps(String username) {
-        if (p1.name.equals(username)) return p1.selectedCorps;
-        else return p2.selectedCorps;
+    //加入房间
+    public boolean join(PlayerInfo joiner) throws IOException {
+        if (!isFull()) {
+            this.p2 = joiner;
+            p2.setNowRoom(this);
+            mapInfo.setP2Name(getP2Name());
+            //给p1发送自己的名字p2name
+            JSONObject jo = new JSONObject();
+            jo.put("msgType", "0");
+            jo.put("p2Name", getP2Name());
+            WebSocketServer.sendInfo(jo.toJSONString(), getP1Name());
+            return true;
+        } else return false;
     }
 
-    public void updateCorps(String username, String content) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        if (p1.name.equals(username)) updateCorps(p1, content);
-        else updateCorps(p2, content);
-    }
 
-    private void updateCorps(PlayerInfo playerInfo, String content) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        System.out.println(playerInfo.corps);
-        final String cName = "S" + playerInfo.name;
-        final String preOfSet = "package logic.playcache;\n" +
-                "\n" +
-                "import logic.beans.Human;\n" +
-                "import java.util.ArrayList;\n" +
-                "\n" +
-                "public class " + cName +
-                " {\n" +
-                "\n" +
-                "    final static int 剑士 = 0;\n" +
-                "    final static int 盾战 = 1;\n" +
-                "    final static int 狂战 = 2;\n" +
-                "    final static int 骑兵 = 3;\n" +
-                "    final static int 牧师 = 4;\n" +
-                "    final static int 舞者 = 5;\n" +
-                "    final static int 巫师 = 6;\n" +
-                "    final static int 弓手 = 7;\n" +
-                "    final static int 枪手 = 8;\n" +
-                "    final static int 重炮 = 9;\n" +
-                "    final static int 法师 = 10;\n" +
-                "\n" +
-                "    ArrayList<Human> Corps;\n" +
-                "\n" +
-                "    public void setProperty(ArrayList<Human>corps){\n" +
-                "        this.Corps = corps;\n" +
-                "        //下面是展示在html上的代码框内容\n";
-        final String behOfSet = "\n//上面是展示在html上的代码框内容\n" +
-                "    }\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "}";
-
-        compile("logic.playcache." + cName, preOfSet + content + behOfSet);
-        MyClassLoader myClassLoader = new MyClassLoader(outDir);
-        Class c = myClassLoader.loadClass("logic.playcache." + cName);
-        Object o = c.getDeclaredConstructor().newInstance();
+    public void notifyAllPlayer(String msgInfo) {
         try {
-            Method method = c.getMethod("setProperty", playerInfo.corps.getClass());
-            method.invoke(o, playerInfo.corps);
-            System.out.println(playerInfo.corps);
-        } catch (Exception e) {
+            WebSocketServer.sendInfo(msgInfo, getP1Name());
+            WebSocketServer.sendInfo(msgInfo, getP2Name());
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
 
+    public List<Occupation> getCorps(String username) {
+        if (getP1Name().equals(username)) return p1.getCorps();
+        else return p2.getCorps();
+    }
+
+    public List<Occupation> getSelectedCorps(String username) {
+        if (getP1Name().equals(username)) return p1.getSelectedCorps();
+        else return p2.getSelectedCorps();
+    }
+
+
     //添加单个士兵
-    public boolean addGroup(PlayerInfo playerInfo, Human human, int row) {
-        if (human.getCost() > playerInfo.resource) return false;
+    public boolean addGroup(PlayerInfo playerInfo, Occupation human, int row) {
+        if (human.getCost() > playerInfo.getResource()) return false;
         else {
             MapInfo.Group g = new MapInfo.Group();
             g.size = 1;
-            g.owner = playerInfo.name;
+            g.owner = playerInfo.getName();
             g.minSpd = human.getSpd();
             g.maxRag = human.getRag();
             g.HP = human.getHp();
@@ -212,13 +178,13 @@ public class Room {
     }
 
     //添加小组士兵
-    public boolean addGroup(PlayerInfo playerInfo, ArrayList<Human> humans, int row) {
-        int cost = humans.stream().mapToInt(Human::getCost).sum();
-        if (cost > playerInfo.resource) return false;
+    public boolean addGroup(PlayerInfo playerInfo, ArrayList<Occupation> humans, int row) {
+        int cost = humans.stream().mapToInt(Occupation::getCost).sum();
+        if (cost > playerInfo.getResource()) return false;
         else {
             MapInfo.Group g = new MapInfo.Group();
             g.size = humans.size();
-            g.owner = playerInfo.name;
+            g.owner = playerInfo.getName();
             g.minSpd = Integer.MAX_VALUE;
             g.maxRag = Integer.MIN_VALUE;
             g.HP = 0;
@@ -239,12 +205,26 @@ public class Room {
     }
 
     //下一回合
-    private void nextTurn() {
+    private void nextTurn() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ClassNotFoundException {
         //ToDo
         //1.资源增长（自然+挖矿）
+        int natureGenerate = mapInfo.generateResource();
+        p1.addResource(natureGenerate + p1.getMinerNum() * 150);
+        p2.addResource(natureGenerate + p2.getMinerNum() * 150);
         //2.生产小队（）
+        Class c = myClassLoader.loadClass("logic.playcache." + "S" + getP1Name());
+        Object o = c.getDeclaredConstructor().newInstance();
+        Method method = c.getMethod("warPlan", p1.getClass());
+        method.invoke(o, p1);
+        c = myClassLoader.loadClass("logic.playcache." + "S" + getP2Name());
+        o = c.getDeclaredConstructor().newInstance();
+        method = c.getMethod("warPlan", p2.getClass());
+        method.invoke(o, p2);
         //3.地图信息刷新（小组移动，小组战斗，小组自爆）
-
+        int[] damages = new int[2];
+        damages = mapInfo.nextTurn();
+        p1.getDamage(damages[0]);
+        p1.getDamage(damages[1]);
     }
 
     //房间是不是加过人了
@@ -257,5 +237,87 @@ public class Room {
         return isPlaying;
     }
 
+    private void generateClass(PlayerInfo playerInfo, String content, int stage) {
+        final String cName = "S" + playerInfo.getName();
+        final String preOfSet = "package logic.playcache;\n" +
+                "\n" +
+                "\n" +
+                "import logic.beans.Occupation;\n" +
+                "import logic.core.room.PlayerInfo;\n" +
+                "\n" +
+                "import java.util.List;\n" +
+                "\n" +
+                "public class " + cName + " {\n" +
+                "\n" +
+                "    final static int 剑士 = 0;\n" +
+                "    final static int 盾战 = 1;\n" +
+                "    final static int 狂战 = 2;\n" +
+                "    final static int 骑兵 = 3;\n" +
+                "    final static int 牧师 = 4;\n" +
+                "    final static int 舞者 = 5;\n" +
+                "    final static int 巫师 = 6;\n" +
+                "    final static int 弓手 = 7;\n" +
+                "    final static int 枪手 = 8;\n" +
+                "    final static int 重炮 = 9;\n" +
+                "    final static int 法师 = 10;\n";
+
+        final String s1pre = "  public void adjustCorps(PlayerInfo Fortress){\n" +
+                "        List<Occupation> Corps = Fortress.getCorps();";
+
+        final String s2pre = "  public void warPlan(PlayerInfo Fortress){\n" +
+                "        List<Occupation> Corps = (List<Occupation>) Fortress.getConstCorps();";
+
+        final String behOfSet = "\n//上面是展示在html上的代码框内容\n" +
+                "    }\n" +
+                "}";
+        if (stage == 1) compile("logic.playcache." + cName, preOfSet + s1pre + content + behOfSet);
+        else if (stage == 2) compile("logic.playcache." + cName, preOfSet + s2pre + content + behOfSet);
+
+
+    }
+
+    public int getStage() {
+        return gameTimer.getStage();
+    }
+
+    public void updateCorps(String username, String content) {
+        PlayerInfo playerInfo;
+        if (p1.getName().equals(username)) playerInfo = p1;
+        else playerInfo = p2;
+        final String cName = "S" + playerInfo.getName();
+        int stage = getStage();
+
+        try {
+            if (stage == 1) {
+                generateClass(playerInfo, content, stage);
+                Class c = myClassLoader.loadClass("logic.playcache." + cName);
+                Object o = c.getDeclaredConstructor().newInstance();
+                Method method = c.getMethod("adjustCorps", playerInfo.getClass());
+                method.invoke(o, playerInfo);
+            } else if (stage == 2) {
+                //独立步骤，只生产class。具体运作在每一次战斗回合的循环中。
+                generateClass(playerInfo, content, stage);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    //请出房间
+    public boolean plzOut() {
+        if (isFull()) {
+            this.p2 = null;
+            return true;
+        } else return false;
+    }
+
+    //p2退出房间
+    public boolean exit() {
+        if (isFull()) {
+            this.p2 = null;
+            return true;
+        } else return false;
+    }
 
 }

@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.banmo.demo.extconfig.security.AjaxAuthSuccessHandler;
 import logic.beans.Corps;
-import logic.beans.Human;
+import logic.beans.Occupation;
 import logic.core.room.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +16,7 @@ import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static logic.core.RoomCenter.roomCenter;
@@ -140,7 +141,7 @@ public class WebSocketServer {
         }
     }
 
-    private ArrayList<Human> updateCorps(String roomId, String content) throws ClassNotFoundException, NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    private List<Occupation> updateCorps(String roomId, String content) throws ClassNotFoundException, NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
         Room room = roomCenter.getRoom(roomId);
         room.updateCorps(username, content);
         return room.getCorps(username);

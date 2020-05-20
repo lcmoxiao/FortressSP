@@ -8,14 +8,14 @@ import java.util.ArrayList;
 
 public class Corps implements Serializable {
 
-    private static ArrayList<Human> corps = new ArrayList<>();
+    private static ArrayList<Occupation> corps = new ArrayList<>();
 
     static {
         getFromDB();
     }
 
     //唯一的方法，用于提供复刻的兵种列表兵种
-    public static ArrayList<Human> getOneData() {
+    public static ArrayList<Occupation> getOneData() {
         return Cloner.clone(corps);
     }
 
@@ -42,7 +42,7 @@ public class Corps implements Serializable {
                 int RAG = res.getInt(8);
                 int cost = res.getInt(9);
                 boolean isAOE = res.getBoolean(10);
-                corps.add(new Human(id, name, HP, ATK, DEF, SPD, DOD, RAG, cost, isAOE));
+                corps.add(new Occupation(id, name, HP, ATK, DEF, SPD, DOD, RAG, cost, isAOE));
             }
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();

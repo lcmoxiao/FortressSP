@@ -18,7 +18,7 @@ import java.util.List;
  * 信息描述：
  */
 public class MyCompiler {
-    public static String outDir = System.getProperty("user.dir") + "\\src\\main\\java";
+    public static String outDir = System.getProperty("user.dir") + "\\src\\main\\java\\";
 
     public static Class<?> compile(String name, String content) {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
@@ -26,7 +26,7 @@ public class MyCompiler {
         StrSrcJavaObject srcObject = new StrSrcJavaObject(name, content);
         List<StrSrcJavaObject> fileObjects = Collections.singletonList(srcObject);
         String flag = "-d";
-        System.out.println("输出目录为" + outDir);
+        System.out.println("输出目录为" + outDir +name);
         Iterable<String> options = Arrays.asList(flag, outDir);
         JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, null, options, null, fileObjects);
         boolean result = task.call();

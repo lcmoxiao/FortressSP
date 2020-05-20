@@ -60,11 +60,6 @@ public class RoomListController {
                 session.setAttribute("p1Name", p1Name);
                 session.setAttribute("p2Name", p2Name);
                 session.setAttribute("role", "p2");
-                //给p1发送自己的名字p2name
-                JSONObject jo = new JSONObject();
-                jo.put("msgType", "0");
-                jo.put("p2Name", p2Name);
-                WebSocketServer.sendInfo(jo.toJSONString(), p1Name);
                 return "room/room";
             } else return "/room/roomIsFull";
         }

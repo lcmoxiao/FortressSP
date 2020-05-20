@@ -15,7 +15,7 @@ import java.io.Serializable;
 
 
 //仅提供修改ATK，DEF，HP的方法，可以获取所有的信息
-public class Human implements Serializable {
+public class Occupation implements Serializable {
     final static int 剑士 = 1;
     final static int 盾战 = 2;
     final static int 狂战 = 3;
@@ -101,7 +101,7 @@ public class Human implements Serializable {
         return isAOE;
     }
 
-    public Human(int id, String name, int HP, int ATK, int DEF, int SPD, double DOD, int RAG, int cost, boolean isAOE) {
+    public Occupation(int id, String name, int HP, int ATK, int DEF, int SPD, double DOD, int RAG, int cost, boolean isAOE) {
         this.id = id;
         this.name = name;
         this.hp = HP;
@@ -116,7 +116,7 @@ public class Human implements Serializable {
 
     @Override
     public String toString() {
-        return "Human{" +
+        return "Occupation{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", hp=" + hp +
@@ -131,7 +131,7 @@ public class Human implements Serializable {
     }
 
     @Override
-    protected Human clone() throws CloneNotSupportedException {
-        return (Human) super.clone();
+    protected Occupation clone() throws CloneNotSupportedException {
+        return (Occupation) super.clone();
     }
 }

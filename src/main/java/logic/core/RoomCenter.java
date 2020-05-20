@@ -3,6 +3,7 @@ package logic.core;
 import logic.core.room.PlayerInfo;
 import logic.core.room.Room;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ public class RoomCenter {
         return randomId++;
     }
 
-    public boolean joinRoom(String playerId, String roomId) {
+    public boolean joinRoom(String playerId, String roomId) throws IOException {
         PlayerInfo pl = new PlayerInfo(playerId);
         return rooms.get(roomId).join(pl);
     }
