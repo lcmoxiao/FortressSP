@@ -17,6 +17,11 @@ public class MapInfo {
     final static int initNaturalIncrease = 500; //每一轮加500资源
     final static int minNaturalIncrease = 0; //每一轮加500资源
     final static int decNaturalIncrease = 10; //每轮-10，最低为0；
+
+    public Group[][] getWarInfo() {
+        return warInfo;
+    }
+
     //每个房间该有的游戏信息
     private Group[][] warInfo;//地图上的士兵小组信息
     private int warPeriod;
@@ -132,7 +137,7 @@ public class MapInfo {
     }
 
     //一个方格内的战斗小组（可以没有人）
-    static class Group implements Serializable {
+    public static class Group implements Serializable {
         int size;   //人数
         String owner;  //所有者
         int minSpd; //最小移速

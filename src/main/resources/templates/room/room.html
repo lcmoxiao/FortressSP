@@ -26,12 +26,14 @@
                 ',"corpsInfo":"' + corpsInfo + '"' +
                 ',"roomId":"' + roomId + '"' +
                 ',"msgType":"' + "1" + '"' +
+                ',"stage":"' + "1" + '"' +
                 '}');
             socket.send('{' +
                 '"toUserId":"' + username + '"' +
                 ',"corpsInfo":"' + corpsInfo + '"' +
                 ',"roomId":"' + roomId + '"' +
                 ',"msgType":"' + '1' + '"' +
+                ',"stage":"' + "1" + '"' +
                 '}');
         }
 
@@ -61,9 +63,10 @@
                     if (info.msgType === "0") {
                         $("#p2Name").html(info.p2Name);
                     } else if (info.msgType === "1") {
-                        let listPrint = info.corpsInfo;
-                        let editTable = document.getElementById("tbody");
-                        $("#tbody").html("");
+                        //同步兵种信息
+                        let listPrint = info.corpsBody;
+                        let editTable = document.getElementById("corpsBody");
+                        $("#corpsBody").html("");
                         for (let i in listPrint) {
                             let tr = document.createElement("tr");
                             for (let key in listPrint[i]) { //map key
@@ -73,61 +76,68 @@
                             }
                             editTable.appendChild(tr);
                         }
+                        listPrint = info.selectedCorpsBody;
+                        editTable = document.getElementById("selectedCorpsBody");
+                        $("#selectedCorpsBody").html("");
+                        for (let i in listPrint) {
+                            let tr = document.createElement("tr");
+                            for (let key in listPrint[i]) { //map key
+                                let td0 = document.createElement("td");
+                                td0.innerHTML = listPrint[i][key];
+                                tr.appendChild(td0);
+                            }
+                            editTable.appendChild(tr);
+                        }
+
                     } else if (info.msgType === "2") {
                         let toStage = info.toStage;
-                        if (toStage === "0") {
+                        if (toStage === "1") {
+                            //开始创建turn1所需的元素
                             let turn0div = document.getElementById("turn0");
                             turn0div.removeChild(document.getElementById("startBtn"));
-                            let turn1div = document.getElementById("turn1");
                             //创建代码框
+                            let turn1L = document.getElementById("turn1L");
                             let corpsInfo = document.createElement("textarea");
                             corpsInfo.rows = 10;
                             corpsInfo.cols = 30;
                             corpsInfo.id = "corpsInfo";
-                            corpsInfo.innerText = "Corps.get(剑士).setAtk(15);";
-                            turn1div.appendChild(corpsInfo);
+                            corpsInfo.innerText = "Corps.get(剑士).setAtk(15);" +
+                                "     Fortress.addHumanToCorps(\"剑士\");\n" +
+                                "        Fortress.addHumanToCorps(\"法师\");\n" +
+                                "        Fortress.removeHumanFromCorps(\"法师\");";
+                            turn1L.appendChild(corpsInfo);
                             //提交按钮
                             let button = document.createElement("div");
                             button.innerHTML = "<button onclick='corpsUpdate()'>提交代码</button>";
-                            turn1div.appendChild(button);
+                            turn1L.appendChild(button);
+
                             //创建表格
+                            let turn1R = document.getElementById("turn1R");
                             let table = document.createElement("table");
-                            let tr = document.createElement("tr");
-                            let th0 = document.createElement("th");
-                            th0.innerText = "ID";
-                            tr.appendChild(th0);
-                            let th1 = document.createElement("th");
-                            th1.innerText = "NAME";
-                            tr.appendChild(th1);
-                            let th2 = document.createElement("th");
-                            th2.innerText = "HP";
-                            tr.appendChild(th2);
-                            let th3 = document.createElement("th");
-                            th3.innerText = "ATK";
-                            tr.appendChild(th3);
-                            let th4 = document.createElement("th");
-                            th4.innerText = "DEF";
-                            tr.appendChild(th4);
-                            let th5 = document.createElement("th");
-                            th5.innerText = "SPD";
-                            tr.appendChild(th5);
-                            let th6 = document.createElement("th");
-                            th6.innerText = "DOD";
-                            tr.appendChild(th6);
-                            let th7 = document.createElement("th");
-                            th7.innerText = "RAG";
-                            tr.appendChild(th7);
-                            let th8 = document.createElement("th");
-                            th8.innerText = "COST";
-                            tr.appendChild(th8);
-                            let th9 = document.createElement("th");
-                            th9.innerText = "isAOE";
-                            tr.appendChild(th9);
-                            table.appendChild(tr);
-                            let tbody = document.createElement("tbody");
-                            tbody.id = "tbody";
-                            table.appendChild(tbody);
-                            turn1div.appendChild(table);
+                            table["border"] = "1";
+                            table.createTHead();
+                            table.tHead.innerHTML = "<tr><th>ID</th><th>NAME</th><th>HP</th><th>ATK</th><th>DEF</th>" +
+                                "<th>SPD</th><th>DOD</th><th>RAG</th><th>COST</th><th>isAOE</th> </tr>";
+
+                            let corpsBody = document.createElement("tbody");
+                            corpsBody.id = "corpsBody";
+                            table.appendChild(corpsBody);
+                            turn1R.appendChild(table);
+
+                            let turn1RR = document.getElementById("turn1RR");
+                            let stable = document.createElement("table");
+                            stable["border"] = "1";
+                            stable.createTHead();
+                            stable.tHead.innerHTML = "<tr><th>ID</th><th>NAME</th><th>HP</th><th>ATK</th><th>DEF</th>" +
+                                "<th>SPD</th><th>DOD</th><th>RAG</th><th>COST</th><th>isAOE</th> </tr>";
+                            let selectedCorpsBody = document.createElement("tbody");
+                            selectedCorpsBody.id = "selectedCorpsBody";
+                            stable.appendChild(selectedCorpsBody);
+                            turn1RR.appendChild(stable);
+                        } else if (toStage === "2") {
+                            let turn1div = document.getElementById("turn1");
+                            turn1div.innerHTML = "";
+
                         }
                     }
                 };
@@ -141,27 +151,72 @@
                 }
             }
         }
-
-
     </script>
+
+    <style type="text/css">
+        .turnT {
+            position: absolute;
+            left: 300px;
+            top: 0px;
+        }
+
+        .turnL {
+            position: absolute;
+            left: 300px;
+            top: 300px;
+        }
+
+        .turnR {
+            position: absolute;
+            left: 600px;
+            top: 300px;
+        }
+
+        .turnRR {
+            position: absolute;
+            left: 1100px;
+            top: 300px;
+        }
+    </style>
 
 </head>
 <!--进入时生成websocket。-->
 <body onload="openSocket()">
 <h2>Room</h2>
 <h2>欢迎来到<span th:text="${session.roomId}+号房"></span></h2>
-<h2>p1:<span th:text="${session.p1Name}" th:id="p1Name"></span>&nbsp;p2:<span th:text="${session.p2Name}"
-                                                                        th:id="p2Name"></span></h2>
-<div th:id="turn1">
-
-</div>
+<h2>p1:<span th:text="${session.p1Name}" th:id="p1Name"></span></h2>
+<h2>p2:<span th:text="${session.p2Name}" th:id="p2Name"></span></h2>
 
 <div th:id="turn0">
     <button onclick="gameStart()" th:id="startBtn">开始游戏</button>
 </div>
 
+<div th:id="turn1">
+    <div th:id="turn1L" th:class="turnL">
+        <span>代码输入栏</span><br>
+    </div>
+    <div th:id="turn1R" th:class="turnR">
+        <span>可编辑兵种列表</span>
+    </div>
+    <div th:id="turn1RR" th:class="turnRR">
+        <span>已选兵种列表</span>
+    </div>
+</div>
 
-
+<div th:id="turn2">
+    <div th:id="turn2T" th:class="turnT">
+        <span>战场信息</span><br>
+    </div>
+    <div th:id="turn2L" th:class="turnL">
+        <span>代码输入栏</span><br>
+    </div>
+    <div th:id="turn2R" th:class="turnR">
+        <span>敌我信息</span>
+    </div>
+    <div th:id="turn2RR" th:class="turnRR">
+        <span>已选兵种列表</span>
+    </div>
+</div>
 
 
 </body>

@@ -2,6 +2,8 @@ package logic.core.room;
 
 import logic.beans.Corps;
 import logic.beans.Occupation;
+import logic.core.room.playInterface.Turn1DO;
+import logic.core.room.playInterface.Turn2DO;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -9,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 
 //存储第一轮自定义环节的玩家信息
-public class PlayerInfo {
+public class PlayerInfo implements Turn1DO, Turn2DO {
     static final int defaultResource = 5000;    //默认资源量
     static final int defaultMinerNum = 0;   //默认矿工数
     static final int defaultFortressHP = 300;   //默认堡垒生命值
@@ -18,8 +20,9 @@ public class PlayerInfo {
     private String name; //玩家ID
     private Room nowRoom;
     private List<Occupation> corps;     //兵种列表，可自定义
-    private Collection<Occupation> unmodifiableCorps;    //用于第二阶段的不可变兵种列表
     private List<Occupation> selectedCorps;     //选定的兵种列表
+    private Collection<Occupation> unmodifiableCorps;    //用于第二阶段的不可变兵种列表
+
     private int resource;   //资源量
     private int minerNum;   //矿工数
     private int fortressHP; //要塞生命值
@@ -60,38 +63,78 @@ public class PlayerInfo {
         this.nowRoom = nowRoom;
     }
 
+
     //____________________________________________turn 1
-    public boolean addHumanToCorps(Occupation human) {
-        if (nowRoom.getStage() != 1) return false;
-        if (selectedCorps.size() < selectedCorpsSize) {
-            selectedCorps.add(human);
-            return true;
+    public Occupation getOccupationByName(String name) {
+        for (Occupation o : corps) {
+            if (o.getName().equals(name)) return o;
         }
-        return false;
+        for (Occupation o : selectedCorps) {
+            if (o.getName().equals(name)) return o;
+        }
+        return null;
     }
 
-    public boolean removeHumanFromCorps(Occupation human) {
-        if (nowRoom.getStage() != 1) return false;
-        if (selectedCorps.size() > 0) {
-            if (selectedCorps.contains(human)) {
-                selectedCorps.remove(human);
-                return true;
+    public boolean addHumanToCorps(String name) {
+        for (Occupation o : corps) {
+            if (o.getName().equals(name)) {
+                if (nowRoom.getStage() != 1) return false;
+                if (selectedCorps.size() < selectedCorpsSize) {
+                    corps.remove(o);
+                    selectedCorps.add(o);
+                    return true;
+                }
+                return false;
             }
         }
         return false;
     }
 
+    public boolean removeHumanFromCorps(String name) {
+        for (Occupation o : corps) {
+            if (nowRoom.getStage() != 1) return false;
+            if (selectedCorps.size() > 0) {
+                if (selectedCorps.contains(o)) {
+                    corps.add(o);
+                    selectedCorps.remove(o);
+                    return true;
+                }
+            }
+            return false;
+        }
+        return false;
+    }
+
     //____________________________________________turn 2
+    public Occupation getHumanByName(String name) {
+        for (Occupation o : corps) {
+            if (o.getName().equals(name)) return o;
+        }
+        return null;
+    }
+
     public void produceCrops(Occupation human, int row) {
         if (nowRoom.getStage() != 2) return;
         nowRoom.addGroup(this, human, row);
     }
 
-    public void produceCrops(ArrayList<Occupation> human, int row) {
+    public void produceCrops(List<Occupation> human, int row) {
         if (nowRoom.getStage() != 2) return;
         nowRoom.addGroup(this, human, row);
     }
 
+    public void addOneMiner() {
+        if (resource >= 150) {
+            resource -= 150;
+            minerNum++;
+        }
+    }
+
+    public MapInfo.Group[][] getWarInfo() {
+        return nowRoom.getWarInfo();
+    }
+
+    //其余功能函数
     public void addResource(int increase) {
         resource += increase;
     }

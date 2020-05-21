@@ -3,8 +3,6 @@ package com.banmo.demo.websocket;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.banmo.demo.extconfig.security.AjaxAuthSuccessHandler;
-import logic.beans.Corps;
-import logic.beans.Occupation;
 import logic.core.room.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,9 +12,6 @@ import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static logic.core.RoomCenter.roomCenter;
@@ -90,7 +85,6 @@ public class WebSocketServer {
         try {
             JSONObject jo = new JSONObject();
             jo.put("msgType", "1");
-            jo.put("corpsInfo", Corps.getOneData());
             sendMessage(jo.toJSONString());
         } catch (IOException e) {
             log.error("用户:" + username + ",网络异常!!!!!!");
@@ -121,14 +115,26 @@ public class WebSocketServer {
         try {
             //解析发送的报文
             JSONObject jo = JSON.parseObject(message);
+            System.out.println("服务器收到" + jo.toJSONString());
             jo.put("fromUserId", this.username);
             String toUserId = jo.getString("toUserId");
             String msgType = jo.getString("msgType");
             String roomID = jo.getString("roomId");
+            Room room = roomCenter.getRoom(roomID);
+            String Stage = jo.getString("stage");
 
             if (msgType.equals("1")) {
-                jo.put("corpsInfo", updateCorps(roomID, jo.getString("corpsInfo")));
-                webSocketMap.get(toUserId).sendMessage(jo.toJSONString());
+                if (Stage.equals("1")) {
+                    String content = jo.getString("corpsInfo");
+                    room.updateCorps(username, content);
+                    jo.put("corpsBody", room.getCorps(username));
+                    jo.put("selectedCorpsBody", room.getSelectedCorps(username));
+                    System.out.println("服务器发送" + JSON.toJSONString(jo));
+                    webSocketMap.get(toUserId).sendMessage(jo.toJSONString());
+                } else if (Stage.equals("2") || Stage.equals("3")) {
+                    String content = jo.getString("StrategyInfo");
+                    room.updateStrategy(username, content);
+                }
             } else if (msgType.equals("2")) {
                 String toStage = jo.getString("toStage");
                 if (toStage.equals("0")) {
@@ -140,13 +146,6 @@ public class WebSocketServer {
             e.printStackTrace();
         }
     }
-
-    private List<Occupation> updateCorps(String roomId, String content) throws ClassNotFoundException, NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
-        Room room = roomCenter.getRoom(roomId);
-        room.updateCorps(username, content);
-        return room.getCorps(username);
-    }
-
 
     /**
      * @param session 用户的session

@@ -1,15 +1,14 @@
 package logic.core.room;
 
-
 import com.alibaba.fastjson.JSONObject;
 import com.banmo.demo.websocket.WebSocketServer;
+import logic.beans.Corps;
 import logic.beans.Occupation;
 import logic.tool.MyClassLoader;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -20,7 +19,7 @@ import static logic.tool.MyCompiler.outDir;
 
 public class Room {
 
-    MyClassLoader myClassLoader = new MyClassLoader(outDir);
+
     //房间ID和房间名
     private int roomId; //房间id，由Center自动传入
     private String roomName; //房间名
@@ -39,6 +38,10 @@ public class Room {
             JSONObject jo = new JSONObject();
             jo.put("msgType", "2");
             jo.put("toStage", "2");
+            jo.put("p1SelectedCorpsInfo", p1.getSelectedCorps());
+            jo.put("p2SelectedCorpsInfo", p2.getSelectedCorps());
+            generateClass(p1, "", 2);
+            generateClass(p2, "", 2);
             notifyAllPlayer(jo.toJSONString());
         }
 
@@ -94,7 +97,8 @@ public class Room {
     }
 
     public String getP2Name() {
-        return p2.getName();
+        if (p2 != null) return p2.getName();
+        else return p1.getName();
     }
 
     public String getP1Name() {
@@ -104,10 +108,13 @@ public class Room {
     //ToStage对应游戏的开始，第一轮，第二轮战略，第二轮战斗  0，1，2，3
     //开始游戏
     public void gameStart() {
-        mapInfo = new MapInfo();
         JSONObject jo = new JSONObject();
         jo.put("msgType", "2");
         jo.put("toStage", "1");
+        notifyAllPlayer(jo.toJSONString());
+        jo = new JSONObject();
+        jo.put("msgType", "1");
+        jo.put("corpsBody", Corps.getOneData());
         notifyAllPlayer(jo.toJSONString());
         gameTimer.start();
         isPlaying = true;
@@ -117,6 +124,7 @@ public class Room {
     public void create(PlayerInfo owner, String roomName, int id) {
         this.p1 = owner;
         p1.setNowRoom(this);
+        mapInfo = new MapInfo();
         mapInfo.setP1Name(getP1Name());
         this.roomName = roomName;
         this.roomId = id;
@@ -138,7 +146,6 @@ public class Room {
         } else return false;
     }
 
-
     public void notifyAllPlayer(String msgInfo) {
         try {
             WebSocketServer.sendInfo(msgInfo, getP1Name());
@@ -147,7 +154,6 @@ public class Room {
             e.printStackTrace();
         }
     }
-
 
     public List<Occupation> getCorps(String username) {
         if (getP1Name().equals(username)) return p1.getCorps();
@@ -159,9 +165,13 @@ public class Room {
         else return p2.getSelectedCorps();
     }
 
+    public MapInfo.Group[][] getWarInfo() {
+        return mapInfo.getWarInfo();
+    }
 
     //添加单个士兵
     public boolean addGroup(PlayerInfo playerInfo, Occupation human, int row) {
+        if (row > 2 || row < 0) return false;
         if (human.getCost() > playerInfo.getResource()) return false;
         else {
             MapInfo.Group g = new MapInfo.Group();
@@ -178,7 +188,8 @@ public class Room {
     }
 
     //添加小组士兵
-    public boolean addGroup(PlayerInfo playerInfo, ArrayList<Occupation> humans, int row) {
+    public boolean addGroup(PlayerInfo playerInfo, List<Occupation> humans, int row) {
+        if (row > 2 || row < 0) return false;
         int cost = humans.stream().mapToInt(Occupation::getCost).sum();
         if (cost > playerInfo.getResource()) return false;
         else {
@@ -212,6 +223,7 @@ public class Room {
         p1.addResource(natureGenerate + p1.getMinerNum() * 150);
         p2.addResource(natureGenerate + p2.getMinerNum() * 150);
         //2.生产小队（）
+        MyClassLoader myClassLoader = new MyClassLoader(outDir);
         Class c = myClassLoader.loadClass("logic.playcache." + "S" + getP1Name());
         Object o = c.getDeclaredConstructor().newInstance();
         Method method = c.getMethod("warPlan", p1.getClass());
@@ -225,6 +237,16 @@ public class Room {
         damages = mapInfo.nextTurn();
         p1.getDamage(damages[0]);
         p1.getDamage(damages[1]);
+
+        JSONObject jo = new JSONObject();
+        jo.put("warInfo", mapInfo.getWarInfo());
+        jo.put("p1Resource", p1.getResource());
+        jo.put("p1FortressHP", p1.getFortressHP());
+        jo.put("p1MinerNum", p1.getMinerNum());
+        jo.put("p2Resource", p2.getResource());
+        jo.put("p2FortressHP", p2.getFortressHP());
+        jo.put("p2MinerNum", p2.getMinerNum());
+        notifyAllPlayer(jo.toJSONString());
     }
 
     //房间是不是加过人了
@@ -241,11 +263,14 @@ public class Room {
         final String cName = "S" + playerInfo.getName();
         final String preOfSet = "package logic.playcache;\n" +
                 "\n" +
-                "\n" +
                 "import logic.beans.Occupation;\n" +
                 "import logic.core.room.PlayerInfo;\n" +
+                "import logic.core.room.Room;\n" +
+                "import logic.core.room.playInterface.Turn1DO;\n" +
+                "import logic.core.room.playInterface.Turn2DO;\n" +
                 "\n" +
-                "import java.util.List;\n" +
+                "import java.util.ArrayList;\n" +
+                "import java.util.List;" +
                 "\n" +
                 "public class " + cName + " {\n" +
                 "\n" +
@@ -261,19 +286,16 @@ public class Room {
                 "    final static int 重炮 = 9;\n" +
                 "    final static int 法师 = 10;\n";
 
-        final String s1pre = "  public void adjustCorps(PlayerInfo Fortress){\n" +
-                "        List<Occupation> Corps = Fortress.getCorps();";
+        final String s1pre = "  public void adjustCorps(Turn1DO Fortress){\n";
 
-        final String s2pre = "  public void warPlan(PlayerInfo Fortress){\n" +
-                "        List<Occupation> Corps = (List<Occupation>) Fortress.getConstCorps();";
+        final String s2pre = "  public void warPlan(Turn2DO Fortress){\n";
 
-        final String behOfSet = "\n//上面是展示在html上的代码框内容\n" +
+        final String behOfSet = " \n//上面是展示在html上的代码框内容\n" +
                 "    }\n" +
                 "}";
-        if (stage == 1) compile("logic.playcache." + cName, preOfSet + s1pre + content + behOfSet);
-        else if (stage == 2) compile("logic.playcache." + cName, preOfSet + s2pre + content + behOfSet);
-
-
+        if (stage == 1) {
+            compile("logic.playcache." + cName, preOfSet + s1pre + content + behOfSet);
+        } else if (stage == 2 || stage == 3) compile("logic.playcache." + cName, preOfSet + s2pre + content + behOfSet);
     }
 
     public int getStage() {
@@ -286,22 +308,24 @@ public class Room {
         else playerInfo = p2;
         final String cName = "S" + playerInfo.getName();
         int stage = getStage();
-
         try {
-            if (stage == 1) {
-                generateClass(playerInfo, content, stage);
-                Class c = myClassLoader.loadClass("logic.playcache." + cName);
-                Object o = c.getDeclaredConstructor().newInstance();
-                Method method = c.getMethod("adjustCorps", playerInfo.getClass());
-                method.invoke(o, playerInfo);
-            } else if (stage == 2) {
-                //独立步骤，只生产class。具体运作在每一次战斗回合的循环中。
-                generateClass(playerInfo, content, stage);
-            }
-
+            generateClass(playerInfo, content, stage);
+            MyClassLoader myClassLoader = new MyClassLoader(outDir);
+            Class c = myClassLoader.loadClass("logic.playcache." + cName);
+            Object o = c.getDeclaredConstructor().newInstance();
+            Method method = c.getMethod("adjustCorps", playerInfo.getClass());
+            method.invoke(o, playerInfo);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void updateStrategy(String username, String content) {
+        PlayerInfo playerInfo;
+        if (p1.getName().equals(username)) playerInfo = p1;
+        else playerInfo = p2;
+        int stage = getStage();
+        generateClass(playerInfo, content, stage);
     }
 
     //请出房间
