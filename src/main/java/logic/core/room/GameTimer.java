@@ -5,8 +5,8 @@ import java.util.TimerTask;
 
 abstract class GameTimer {
 
-    final static int firstTurnTime = 180;  //180s 自定义环节
-    final static int secondTurnTime = 60;  //60s 战略布局环节
+    final static int firstTurnTime = 10;  //180s 自定义环节
+    final static int secondTurnTime = 10;  //60s 战略布局环节
     private final Task turn3 = new Task() {
         @Override
         public void run() {

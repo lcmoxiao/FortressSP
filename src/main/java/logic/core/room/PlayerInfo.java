@@ -4,31 +4,27 @@ import logic.beans.Corps;
 import logic.beans.Occupation;
 import logic.core.room.playInterface.Turn1DO;
 import logic.core.room.playInterface.Turn2DO;
+import logic.tool.Cloner;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
-//存储第一轮自定义环节的玩家信息
+//单方玩家信息，继承的两个接口分别为第一轮、第二轮游戏玩家可用的操作。
 public class PlayerInfo implements Turn1DO, Turn2DO {
     static final int defaultResource = 5000;    //默认资源量
     static final int defaultMinerNum = 0;   //默认矿工数
     static final int defaultFortressHP = 300;   //默认堡垒生命值
     static final int selectedCorpsSize = 5;   //默认堡垒生命值
 
-    private String name; //玩家ID
-    private Room nowRoom;
-    private List<Occupation> corps;     //兵种列表，可自定义
-    private List<Occupation> selectedCorps;     //选定的兵种列表
-    private Collection<Occupation> unmodifiableCorps;    //用于第二阶段的不可变兵种列表
+    private final String name; //玩家ID
+    private final List<Occupation> corps;     //兵种列表，可自定义
+    private final List<Occupation> selectedCorps;     //选定的兵种列表
 
+    private Room nowRoom;
     private int resource;   //资源量
     private int minerNum;   //矿工数
     private int fortressHP; //要塞生命值
 
-    private PlayerInfo() {
-    }
 
     //初始化玩家信息，包括各类资源量
     public PlayerInfo(String id) {
@@ -38,22 +34,6 @@ public class PlayerInfo implements Turn1DO, Turn2DO {
         this.selectedCorps = new ArrayList<>();
         this.minerNum = defaultMinerNum;
         this.fortressHP = defaultFortressHP;
-    }
-
-    public static int getDefaultResource() {
-        return defaultResource;
-    }
-
-    public static int getDefaultMinerNum() {
-        return defaultMinerNum;
-    }
-
-    public static int getDefaultFortressHP() {
-        return defaultFortressHP;
-    }
-
-    public static int getSelectedCorpsSize() {
-        return selectedCorpsSize;
     }
 
 
@@ -106,21 +86,64 @@ public class PlayerInfo implements Turn1DO, Turn2DO {
     }
 
     //____________________________________________turn 2
+    //通过职业名获取一个单位
     public Occupation getHumanByName(String name) {
-        for (Occupation o : corps) {
-            if (o.getName().equals(name)) return o;
+        for (Occupation o : selectedCorps) {
+            if (o.getName().equals(name)) {
+                System.out.println("成功获取一名人类");
+                return Cloner.clone(o);
+            }
         }
         return null;
     }
 
-    public void produceCrops(Occupation human, int row) {
-        if (nowRoom.getStage() != 2) return;
-        nowRoom.addGroup(this, human, row);
+    //通过职业id获取一个单位
+    public Occupation getHumanById(int id) {
+        for (Occupation o : selectedCorps) {
+            if (o.getId() == id) {
+                System.out.println("成功获取一名人类");
+                return Cloner.clone(o);
+            }
+        }
+        return null;
     }
 
-    public void produceCrops(List<Occupation> human, int row) {
-        if (nowRoom.getStage() != 2) return;
-        nowRoom.addGroup(this, human, row);
+    //传入单个单位，和初始位置，生产一组军队。
+    public boolean produceCrops(Occupation human, int row) {
+        if (nowRoom.getStage() != 3) return false;
+        if (rowIsWrong(row)) {
+            System.out.println("位置超出生产失败");
+            return false;
+        }
+        if (human.getCost() > getResource()) {
+            System.out.println("资源不足生产失败");
+            return false;
+        }
+
+        consumeResource(human.getCost());
+        return nowRoom.addGroup(name, human, row);
+    }
+
+    //传入一组单位，和初始位置，生产一组军队。
+    public boolean produceCrops(List<Occupation> human, int row) {
+        if (nowRoom.getStage() != 3) return false;
+        if (rowIsWrong(row)) {
+            System.out.println("位置超出生产失败");
+            return false;
+        }
+        int cost = human.stream().mapToInt(Occupation::getCost).sum();
+        if (cost > getResource()) {
+            System.out.println("资源不足生产失败");
+            return false;
+        }
+        consumeResource(cost);
+        return nowRoom.addGroup(name, human, row);
+    }
+
+    //传入初始位置，随机选择一个单位生成。
+    public void randomProduce(int row) {
+        int random = (int) (Math.random() * selectedCorps.size());
+        produceCrops(selectedCorps.get(random), row);
     }
 
     public void addOneMiner() {
@@ -130,7 +153,7 @@ public class PlayerInfo implements Turn1DO, Turn2DO {
         }
     }
 
-    public MapInfo.Group[][] getWarInfo() {
+    public Group[][] getWarInfo() {
         return nowRoom.getWarInfo();
     }
 
@@ -145,11 +168,6 @@ public class PlayerInfo implements Turn1DO, Turn2DO {
 
     public List<Occupation> getCorps() {
         return corps;
-    }
-
-    public Collection<Occupation> getConstCorps() {
-        if (unmodifiableCorps == null) unmodifiableCorps = Collections.unmodifiableList(selectedCorps);
-        return unmodifiableCorps;
     }
 
     public String getName() {
@@ -170,5 +188,14 @@ public class PlayerInfo implements Turn1DO, Turn2DO {
 
     public int getFortressHP() {
         return fortressHP;
+    }
+
+
+    private void consumeResource(int costs) {
+        resource -= costs;
+    }
+
+    public boolean rowIsWrong(int row) {
+        return row > 2 || row < 0;
     }
 }

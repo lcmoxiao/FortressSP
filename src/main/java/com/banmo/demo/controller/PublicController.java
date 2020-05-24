@@ -12,5 +12,9 @@ public class PublicController {
         return "login";
     }
 
+    @RequestMapping("/")
+    public String index() {
+        return "index";
+    }
 
 }

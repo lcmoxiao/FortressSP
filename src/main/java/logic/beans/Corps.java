@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 public class Corps implements Serializable {
 
-    private static ArrayList<Occupation> corps = new ArrayList<>();
+    private static final ArrayList<Occupation> corps = new ArrayList<>();
 
     static {
         getFromDB();
@@ -17,6 +17,10 @@ public class Corps implements Serializable {
     //唯一的方法，用于提供复刻的兵种列表兵种
     public static ArrayList<Occupation> getOneData() {
         return Cloner.clone(corps);
+    }
+
+    public static void main(String[] args) {
+        System.out.println(getOneData());
     }
 
     private static void getFromDB() {

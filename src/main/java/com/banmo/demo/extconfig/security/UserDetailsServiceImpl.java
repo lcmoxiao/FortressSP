@@ -18,20 +18,20 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @PostConstruct
     private void init() {
-        userRepository.put("zhangshan", "123456");
+        userRepository.put("bb", "22");
         userRepository.put("guo", "123456");
         userRepository.put("aa", "11");
     }
 
     @Override
     public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
-        System.out.println("loadUserByUsername:"+s);
-        if(userRepository.containsKey(s))
-        return new User(s, userRepository.get(s),getAuthorities());
+        System.out.println("loadUserByUsername:" + s);
+        if (userRepository.containsKey(s))
+            return new User(s, userRepository.get(s), getAuthorities());
         else return null;
     }
 
-    private Collection<GrantedAuthority> getAuthorities(){
+    private Collection<GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authList = new ArrayList<>();
         authList.add(new SimpleGrantedAuthority("ADMIN"));
         authList.add(new SimpleGrantedAuthority("DB"));

@@ -4,8 +4,10 @@ import logic.beans.Occupation;
 
 public interface Turn1DO {
 
-    Occupation getOccupationByName(String name);
-    boolean addHumanToCorps(String name);
-    boolean removeHumanFromCorps(String name);
+    public Occupation getOccupationByName(String name);
+
+    public boolean addHumanToCorps(String name);
+
+    public boolean removeHumanFromCorps(String name);
 
 }

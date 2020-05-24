@@ -5,33 +5,36 @@
     <title>Title</title>
 </head>
 <body>
-<h2>房间列表</h2>
+<div style="text-align: center">
 
-<form method="post" th:action="@{/roomList/join}">
-    <label>
-        <input type="text" name="roomId">
-    </label>
-    <input type="submit" value="加入房间">
-</form>
-<form method="post" th:action="@{/roomList/add}">
-    <label>
-        房间名<input type="text" name="roomName">
-    </label>
-    <input type="submit" value="创建房间">
-</form>
-<h2 th:text="${errorInfo}" th:unless="${errorInfo == null}"></h2>
+    <form method="post" th:action="@{/room/add}">
+        <label><input type="text" name="roomName" placeholder="要创建房间的房间名">
+        </label>
+        <input type="submit" value="创建房间">
+    </form>
+    <form method="post" th:action="@{/room/join}">
+        <label>
+            <input type="text" name="roomId" placeholder="要加入房间的房间号">
+        </label>
+        <input type="submit" value="加入房间">
+    </form>
 
-<table>
-    <thead>
-    <tr>
-        <th>房间ID</th>
-    </tr>
-    </thead>
-    <tbody th:remove="all-but-first">
-    <tr th:each="room:${RoomIds}">
-        <td th:text="${room}">房间id</td>
-    </tr>
-    </tbody>
-</table>
+    <h2 th:text="${errorInfo}" th:unless="${errorInfo == null}"></h2>
+    <h2>房间列表</h2>
+    <table border="1" style="margin: auto;width: 400px">
+        <thead>
+        <tr>
+            <th>房间ID</th>
+            <th>房间名</th>
+        </tr>
+        </thead>
+        <tbody th:remove="all-but-first">
+        <tr th:each="room:${RoomInfos}">
+            <td th:text="${room.getKey()}">房间id</td>
+            <td th:text="${room.getValue()}">房间id</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 </body>
 </html>

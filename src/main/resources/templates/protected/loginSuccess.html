@@ -5,16 +5,17 @@
     <title>Title</title>
 </head>
 <body>
+<div style="text-align: center">
+    <h2>登录成功</h2>
 
-<h2>登录成功</h2>
+    <a th:href="@{/roomList/show}">游戏中心</a>
 
-<form th:action="@{/logoutPage}" method="post">
-    <input type="submit" value="想注销">
-</form>
+    <br>
+    <br>
 
-<form th:action="@{/roomList/show}" method="get">
-    <input type="submit" value="进入房间列表">
-</form>
-
+    <form th:action="@{/logoutPage}" method="post">
+        <input type="submit" value="想注销">
+    </form>
+</div>
 </body>
 </html>
